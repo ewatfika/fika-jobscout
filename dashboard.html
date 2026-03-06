@@ -302,38 +302,78 @@
       min-height: 2px;
     }
 
-    /* Company drawer */
-    .company-drawer-row td { padding: 0 !important; border-bottom: none; }
-    .drawer-content {
-      background: var(--bg);
+    /* Company detail side panel */
+    .panel-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.25); z-index: 100;
+    }
+    .panel-overlay.active { display: block; }
+    .company-panel {
+      position: fixed; top: 0; right: -500px; width: 460px;
+      height: 100vh; background: var(--surface);
+      box-shadow: -4px 0 32px rgba(0,0,0,0.12);
+      z-index: 101; overflow-y: auto;
+      transition: right 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .company-panel.open { right: 0; }
+    .panel-header {
+      display: flex; align-items: flex-start;
+      justify-content: space-between;
+      padding: 28px 24px 20px;
       border-bottom: 1px solid var(--border);
-      animation: fadeSlide 0.15s ease-out;
-      overflow: hidden;
+      position: sticky; top: 0;
+      background: var(--surface); z-index: 1;
     }
-    @keyframes fadeSlide {
-      from { opacity: 0; transform: translateY(-4px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .panel-company-name {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.7rem; font-weight: 600;
+      color: var(--text); line-height: 1.1;
     }
-    .drawer-empty {
-      padding: 10px 14px;
-      color: var(--muted);
-      font-size: 0.82rem;
-      font-style: italic;
+    .panel-subtitle { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .panel-close {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 1.3rem; line-height: 1;
+      padding: 4px; margin-top: -2px; border-radius: 4px;
     }
-    .drawer-job {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 14px;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.84rem;
+    .panel-close:hover { color: var(--text); background: var(--surface2); }
+    .panel-section { padding: 18px 24px; border-bottom: 1px solid var(--border); }
+    .panel-section:last-child { border-bottom: none; }
+    .panel-section-label {
+      font-size: 0.63rem; font-weight: 600;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--muted); margin-bottom: 12px;
     }
-    .drawer-job:last-child { border-bottom: none; }
-    .drawer-job-info { flex: 1; min-width: 0; }
-    .drawer-job-title a { color: var(--text); text-decoration: none; font-weight: 500; }
-    .drawer-job-title a:hover { color: var(--accent2); text-decoration: underline; }
-    .drawer-job-meta { font-size: 0.76rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .drawer-job-posted { font-size: 0.76rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .panel-trend { display: flex; align-items: flex-end; gap: 4px; height: 56px; }
+    .panel-trend-bar {
+      flex: 1; background: var(--accent);
+      border-radius: 3px 3px 0 0; min-height: 3px;
+      transition: opacity 0.15s;
+    }
+    .panel-trend-bar:hover { opacity: 1 !important; }
+    .panel-trend-labels { display: flex; gap: 4px; margin-top: 5px; }
+    .panel-trend-label {
+      flex: 1; font-size: 0.6rem; color: var(--muted);
+      text-align: center; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+    .dept-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .dept-pill {
+      font-size: 0.72rem; background: var(--surface2);
+      color: var(--text); border-radius: 20px; padding: 3px 10px;
+    }
+    .panel-role {
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+      display: flex; gap: 10px; align-items: flex-start;
+    }
+    .panel-role:last-child { border-bottom: none; }
+    .panel-role-info { flex: 1; min-width: 0; }
+    .panel-role-title a {
+      font-size: 0.88rem; font-weight: 500;
+      color: var(--text); text-decoration: none;
+    }
+    .panel-role-title a:hover { color: var(--accent2); text-decoration: underline; }
+    .panel-role-meta { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
+    .panel-role-days { font-size: 0.74rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
     .salary-badge {
       display: inline-block;
       font-size: 0.7rem;
@@ -753,7 +793,7 @@ let allJobs        = [];   // pre-processed with _function, _seniority, _isLeade
 let activeFunction = "All";
 let activeSeniority= "All";
 let keywordValue   = "";
-let expandedCompany= null;
+
 let feedTabValue   = "All";
 let trendChart     = null;
 let debounceTimer  = null;
@@ -933,28 +973,84 @@ function updateTrendChart(filteredJobs) {
 // COMPANY TABLE
 // =============================================================================
 
-function renderDrawerContent(company, filteredJobs) {
-  const jobs = filteredJobs
-    .filter(j => j.company === company)
+function openCompanyPanel(company) {
+  const jobs = allJobs.filter(j => j.company === company)
     .sort((a, b) => new Date(b.first_seen) - new Date(a.first_seen));
-  if (!jobs.length) return `<div class="drawer-empty">No matching roles.</div>`;
-  return jobs.map(j => {
-    const meta = [j.department, j.location].filter(Boolean).join(" · ");
-    const daysOpen = Math.floor((Date.now() - new Date(j.first_seen)) / (1000*60*60*24));
-    const daysLabel = daysOpen === 0 ? "today" : daysOpen === 1 ? "1d open" : `${daysOpen}d open`;
-    return `
-      <div class="drawer-job">
-        <div class="drawer-job-info">
-          <div class="drawer-job-title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></div>
-          <div class="drawer-job-meta">
-            ${meta ? esc(meta) : ""}
-            ${j.salary ? ` · <span class="salary-badge">${esc(j.salary)}</span>` : ""}
-          </div>
-        </div>
-        <div class="drawer-job-posted" title="Posted ${relativeTime(j.first_seen)}">${daysLabel}</div>
-      </div>`;
-  }).join("");
+
+  const trendData = computeSparkline(jobs, 8);
+  const maxTrend = Math.max(...trendData, 1);
+  const now = Date.now();
+  const weekLabels = Array.from({length: 8}, (_, i) => {
+    const d = new Date(now - (7 - i) * 7 * 86400000);
+    return `${d.toLocaleString('default', {month:'short'})} ${d.getDate()}`;
+  });
+
+  const deptCount = {};
+  for (const j of jobs) {
+    const d = j.department || "Other";
+    deptCount[d] = (deptCount[d] || 0) + 1;
+  }
+  const depts = Object.entries(deptCount).sort((a, b) => b[1] - a[1]);
+
+  document.getElementById("company-panel").innerHTML = `
+    <div class="panel-header">
+      <div>
+        <div class="panel-company-name">${esc(company)}</div>
+        <div class="panel-subtitle">${jobs.length} open role${jobs.length !== 1 ? "s" : ""}</div>
+      </div>
+      <button class="panel-close" onclick="closeCompanyPanel()">&#x2715;</button>
+    </div>
+    <div class="panel-section">
+      <div class="panel-section-label">Hiring trend (8 weeks)</div>
+      <div class="panel-trend">
+        ${trendData.map((c, i) => {
+          const h = c > 0 ? Math.max(Math.round((c / maxTrend) * 100), 8) : 3;
+          return `<div class="panel-trend-bar" style="height:${h}%;opacity:${c > 0 ? 0.7 : 0.15}" title="${weekLabels[i]}: ${c} new"></div>`;
+        }).join("")}
+      </div>
+      <div class="panel-trend-labels">
+        ${weekLabels.map((l, i) => `<div class="panel-trend-label">${i % 2 === 0 ? l.split(" ")[0] + " " + l.split(" ")[1] : ""}</div>`).join("")}
+      </div>
+    </div>
+    ${depts.length > 1 ? `
+    <div class="panel-section">
+      <div class="panel-section-label">By department</div>
+      <div class="dept-pills">
+        ${depts.map(([d, n]) => `<span class="dept-pill">${esc(d)} <strong>${n}</strong></span>`).join("")}
+      </div>
+    </div>` : ""}
+    <div class="panel-section">
+      <div class="panel-section-label">Open roles</div>
+      ${jobs.map(j => {
+        const meta = [j.department, j.location].filter(Boolean).join(" · ");
+        const daysOpen = Math.floor((Date.now() - new Date(j.first_seen)) / (1000*60*60*24));
+        const daysLabel = daysOpen === 0 ? "today" : `${daysOpen}d`;
+        return `
+          <div class="panel-role">
+            <div class="panel-role-info">
+              <div class="panel-role-title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></div>
+              <div class="panel-role-meta">
+                ${esc(meta)}${j.salary ? ` · <span class="salary-badge">${esc(j.salary)}</span>` : ""}
+              </div>
+            </div>
+            <div class="panel-role-days">${daysLabel}</div>
+          </div>`;
+      }).join("")}
+    </div>
+  `;
+
+  document.getElementById("panel-overlay").classList.add("active");
+  document.getElementById("company-panel").classList.add("open");
+  document.body.style.overflow = "hidden";
 }
+
+function closeCompanyPanel() {
+  document.getElementById("company-panel").classList.remove("open");
+  document.getElementById("panel-overlay").classList.remove("active");
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeCompanyPanel(); });
 
 function renderCompanyTable(filteredJobs) {
   const wrap = document.getElementById("companies-wrap");
@@ -978,27 +1074,20 @@ function renderCompanyTable(filteredJobs) {
     return;
   }
 
-  const isOpen = company => company === expandedCompany;
-
   const html = `
     <table>
       <thead><tr><th>Company</th><th>Jobs</th><th>Trend</th><th>Last Posted</th></tr></thead>
-      <tbody id="companies-tbody">
+      <tbody>
         ${rows.map(([company, jobs]) => {
           const sparkData  = computeSparkline(jobs, 6);
           const lastPosted = jobs.reduce((m, j) => j.first_seen > m ? j.first_seen : m, "");
-          const open       = isOpen(company);
           return `
-            <tr class="company-row${open ? " is-open" : ""}" data-company="${esc(company)}">
-              <td><span style="font-weight:500">${esc(company)}</span><span class="expand-icon">&#9654;</span></td>
+            <tr class="company-row" data-company="${esc(company)}" style="cursor:pointer">
+              <td><span style="font-weight:500">${esc(company)}</span></td>
               <td><span class="count-badge">${jobs.length}</span></td>
               <td>${renderSparkline(sparkData)}</td>
               <td><span class="date-muted">${relativeTime(lastPosted)}</span></td>
-            </tr>
-            ${open ? `
-            <tr class="company-drawer-row">
-              <td colspan="4"><div class="drawer-content">${renderDrawerContent(company, filteredJobs)}</div></td>
-            </tr>` : ""}`;
+            </tr>`;
         }).join("")}
       </tbody>
     </table>`;
@@ -1006,11 +1095,7 @@ function renderCompanyTable(filteredJobs) {
   wrap.innerHTML = html;
 
   wrap.querySelectorAll(".company-row").forEach(row => {
-    row.addEventListener("click", () => {
-      const company = row.dataset.company;
-      expandedCompany = expandedCompany === company ? null : company;
-      renderCompanyTable(getFilteredJobs());
-    });
+    row.addEventListener("click", () => openCompanyPanel(row.dataset.company));
   });
 }
 
@@ -1208,7 +1293,7 @@ function setupEvents() {
       pill.classList.add("active");
       if (f === "function") activeFunction = pill.dataset.value;
       else activeSeniority = pill.dataset.value;
-      expandedCompany = null;
+      closeCompanyPanel();
       updateOverview();
     });
   });
@@ -1218,7 +1303,7 @@ function setupEvents() {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       keywordValue = e.target.value.trim();
-      expandedCompany = null;
+      closeCompanyPanel();
       updateOverview();
     }, 180);
   });
@@ -1267,5 +1352,9 @@ async function init() {
 
 init().catch(err => console.error("Dashboard init error:", err));
 </script>
+
+<div id="panel-overlay" class="panel-overlay" onclick="closeCompanyPanel()"></div>
+<div id="company-panel" class="company-panel"></div>
+
 </body>
 </html>
