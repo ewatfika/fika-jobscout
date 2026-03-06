@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Scout · Fika Ventures</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f5f0;
+      --surface: #ffffff;
+      --surface2: #ece7dd;
+      --border: #ddd8cf;
+      --text: #232933;
+      --muted: #7a7773;
+      --accent: #184b30;
+      --accent2: #5da089;
+      --green: #5da089;
+      --yellow: #c8953c;
+      --red: #9b2c2c;
+      --card-radius: 10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ---- Layout wrapper ---- */
+    .page { max-width: 1200px; margin: 0 auto; padding: 32px 28px; }
+
+    /* ---- Header ---- */
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-firm {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .header-sep { color: var(--border); font-size: 1rem; line-height: 1; }
+    header h1 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.9rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      line-height: 1;
+    }
+    .header-badge {
+      font-size: 0.68rem;
+      background: var(--accent);
+      color: #fff;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ---- Tab nav ---- */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 8px 18px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ---- Stats grid ---- */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 20px 24px;
+    }
+    .stat-card .label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .stat-card .value {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 2.4rem;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--text);
+    }
+    .stat-card .value.green { color: var(--accent); }
+    .stat-card .value.blue  { color: var(--accent2); }
+
+    /* ---- Filter bar ---- */
+    .filter-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--bg);
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .pill-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .pill-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      margin-right: 2px;
+      white-space: nowrap;
+    }
+    .pill {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 500;
+      padding: 3px 11px;
+      border-radius: 99px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .pill:hover { border-color: var(--accent); color: var(--accent); }
+    .pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .filter-sep { color: var(--border); font-size: 1.2rem; line-height: 1; }
+    .keyword-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.83rem;
+      padding: 5px 12px;
+      outline: none;
+      width: 210px;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    .keyword-input:focus { border-color: var(--accent2); }
+    .keyword-input::placeholder { color: var(--muted); }
+
+    /* ---- Generic card ---- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 22px 26px;
+    }
+    .card-title {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 16px;
+    }
+
+    /* ---- Trend chart ---- */
+    .trend-card { margin-bottom: 20px; }
+    canvas { width: 100% !important; }
+
+    /* ---- Overview 2-col grid ---- */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* ---- Company table ---- */
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    th {
+      text-align: left;
+      padding: 6px 0;
+      color: var(--muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    td { padding: 9px 0; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+
+    .company-row { cursor: pointer; transition: background 0.1s; }
+    .company-row:hover td { background: rgba(24,75,48,0.04); }
+    .company-row td:first-child { border-radius: 4px 0 0 4px; }
+    .company-row td:last-child  { border-radius: 0 4px 4px 0; }
+
+    .expand-icon {
+      display: inline-block;
+      font-size: 0.6rem;
+      color: var(--muted);
+      margin-left: 5px;
+      transition: transform 0.2s;
+      vertical-align: middle;
+    }
+    .company-row.is-open .expand-icon { transform: rotate(90deg); }
+
+    .count-badge {
+      display: inline-block;
+      background: var(--surface2);
+      color: var(--accent);
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 4px;
+      padding: 2px 8px;
+      border: 1px solid var(--border);
+    }
+    .date-muted { color: var(--muted); font-size: 0.8rem; }
+
+    /* Sparkline */
+    .sparkline {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 22px;
+      width: 52px;
+    }
+    .spark-bar {
+      flex: 1;
+      background: var(--accent2);
+      border-radius: 1px;
+      opacity: 0.65;
+      min-height: 2px;
+    }
+
+    /* Company drawer */
+    .company-drawer-row td { padding: 0 !important; border-bottom: none; }
+    .drawer-content {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      animation: fadeSlide 0.15s ease-out;
+      overflow: hidden;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .drawer-empty {
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-style: italic;
+    }
+    .drawer-job {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.84rem;
+    }
+    .drawer-job:last-child { border-bottom: none; }
+    .drawer-job-info { flex: 1; min-width: 0; }
+    .drawer-job-title a { color: var(--text); text-decoration: none; font-weight: 500; }
+    .drawer-job-title a:hover { color: var(--accent2); text-decoration: underline; }
+    .drawer-job-meta { font-size: 0.76rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .drawer-job-posted { font-size: 0.76rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+
+    /* ---- Recent feed ---- */
+    .feed-tab-nav {
+      display: flex;
+      gap: 0;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .feed-tab-nav::-webkit-scrollbar { display: none; }
+    .feed-tab-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 5px 12px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s;
+    }
+    .feed-tab-btn:hover { color: var(--text); }
+    .feed-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+    .feed-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-item.is-leadership {
+      background: rgba(24,75,48,0.05);
+      border-radius: 6px;
+      padding: 10px;
+      margin: 2px -10px;
+      border-left: 2px solid var(--accent);
+    }
+    .feed-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+    .feed-company {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .feed-leadership-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+    .feed-title { font-size: 0.88rem; font-weight: 500; }
+    .feed-title a { color: var(--text); text-decoration: none; }
+    .feed-title a:hover { color: var(--accent2); text-decoration: underline; }
+    .feed-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ---- Loading / error ---- */
+    .loading { color: var(--muted); font-size: 0.85rem; padding: 14px 0; }
+    .error-msg { color: var(--red); font-size: 0.85rem; padding: 12px 0; }
+
+    /* ---- Find Roles tab ---- */
+    .match-form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 26px;
+      margin-bottom: 24px;
+    }
+    .form-section { margin-bottom: 18px; }
+    .form-section:last-of-type { margin-bottom: 0; }
+    .form-label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: 0.01em;
+    }
+    .form-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+      line-height: 1.55;
+    }
+    .form-optional { color: var(--muted); font-weight: 400; }
+    textarea.form-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.88rem;
+      font-family: inherit;
+      padding: 12px 14px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.55;
+    }
+    textarea.form-input:focus { border-color: var(--accent2); }
+    textarea.form-input::placeholder { color: var(--muted); }
+    #linkedin-input { min-height: 140px; }
+    #context-input  { min-height: 72px; }
+
+    .match-btn {
+      margin-top: 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 10px 28px;
+      cursor: pointer;
+      transition: background 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .match-btn:hover   { background: #1f6040; }
+    .match-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Spinner */
+    .spinner-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      padding: 10px 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* Candidate summary */
+    .candidate-summary {
+      background: rgba(24,75,48,0.05);
+      border: 1px solid rgba(24,75,48,0.18);
+      border-radius: var(--card-radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .cand-header { margin-bottom: 10px; }
+    .cand-name {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .cand-role { font-size: 0.85rem; color: var(--muted); }
+    .cand-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+    .cand-tag {
+      font-size: 0.71rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+    .tag-fn  { background: rgba(93,160,137,0.15); color: var(--accent2); }
+    .tag-sen { background: rgba(24,75,48,0.12);   color: var(--accent); }
+    .tag-loc { background: var(--surface2);        color: var(--muted); }
+    .tag-exp { background: rgba(200,149,60,0.15);  color: var(--yellow); }
+    .skills-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .skill-tag {
+      font-size: 0.71rem;
+      background: var(--surface2);
+      color: var(--muted);
+      padding: 2px 9px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    /* Match results */
+    .match-results { display: flex; flex-direction: column; gap: 12px; }
+
+    .match-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 18px 22px;
+    }
+    .match-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+    .score-section { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .score-num {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.6rem;
+      font-weight: 600;
+      min-width: 40px;
+      text-align: right;
+      line-height: 1;
+    }
+    .score-bar-wrap {
+      width: 80px; height: 3px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .score-bar { height: 100%; border-radius: 99px; }
+    .match-badges { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge {
+      font-size: 0.67rem;
+      font-weight: 600;
+      border-radius: 4px;
+      padding: 2px 8px;
+      text-transform: capitalize;
+      letter-spacing: 0.03em;
+    }
+    .badge-fn-yes { background: rgba(93,160,137,0.15); color: var(--accent2); }
+    .badge-fn-no  { background: rgba(155,44,44,0.1);   color: var(--red); }
+    .badge-fit-strong       { background: rgba(93,160,137,0.15); color: var(--accent2); }
+    .badge-fit-stretch      { background: rgba(200,149,60,0.15); color: var(--yellow); }
+    .badge-fit-overqualified{ background: var(--surface2);       color: var(--muted); border: 1px solid var(--border); }
+    .badge-seniority { background: rgba(24,75,48,0.1); color: var(--accent); }
+
+    .match-role { font-size: 0.95rem; font-weight: 600; margin-bottom: 3px; }
+    .match-role a { color: var(--text); text-decoration: none; }
+    .match-role a:hover { color: var(--accent2); text-decoration: underline; }
+    .match-meta { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; }
+    .match-reason {
+      font-size: 0.84rem;
+      font-style: italic;
+      color: var(--muted);
+      border-left: 2px solid var(--accent2);
+      padding-left: 10px;
+      margin-bottom: 10px;
+      line-height: 1.55;
+    }
+    .match-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .match-posted { font-size: 0.75rem; color: var(--muted); }
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.71rem;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+    /* No matches callout */
+    .no-matches-callout {
+      background: rgba(200,149,60,0.08);
+      border: 1px solid rgba(200,149,60,0.25);
+      border-radius: var(--card-radius);
+      padding: 14px 18px;
+      color: var(--yellow);
+      font-size: 0.86rem;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <span class="header-firm">Fika Ventures</span>
+  <span class="header-sep">/</span>
+  <h1>Job Scout</h1>
+  <span class="header-badge">Portfolio Hiring</span>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="overview">Overview</button>
+  <button class="tab-btn" data-tab="match">Find Roles</button>
+</nav>
+
+<!-- ===== OVERVIEW TAB ===== -->
+<div id="tab-overview" class="tab-panel active">
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="label">Companies Tracked</div>
+      <div class="value" id="stat-companies">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Active Openings</div>
+      <div class="value blue" id="stat-active">-</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">New This Week</div>
+      <div class="value green" id="stat-new-week">-</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="pill-group">
+      <span class="pill-label">Function</span>
+      <button class="pill active" data-filter="function" data-value="All">All</button>
+      <button class="pill" data-filter="function" data-value="Engineering">Engineering</button>
+      <button class="pill" data-filter="function" data-value="Product">Product</button>
+      <button class="pill" data-filter="function" data-value="Sales">Sales</button>
+      <button class="pill" data-filter="function" data-value="Marketing">Marketing</button>
+      <button class="pill" data-filter="function" data-value="Operations">Operations</button>
+      <button class="pill" data-filter="function" data-value="G&A">G&A</button>
+    </div>
+    <span class="filter-sep">|</span>
+    <div class="pill-group">
+      <span class="pill-label">Seniority</span>
+      <button class="pill active" data-filter="seniority" data-value="All">All</button>
+      <button class="pill" data-filter="seniority" data-value="IC">IC</button>
+      <button class="pill" data-filter="seniority" data-value="Manager">Manager</button>
+      <button class="pill" data-filter="seniority" data-value="Director">Director</button>
+      <button class="pill" data-filter="seniority" data-value="VP+">VP+</button>
+    </div>
+    <input class="keyword-input" id="keyword-search" type="text" placeholder="Search titles &amp; companies..." />
+  </div>
+
+  <div class="card trend-card">
+    <div class="card-title">New Jobs Per Week (last 8 weeks)</div>
+    <canvas id="trends-chart" height="75"></canvas>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Companies</div>
+      <div id="companies-wrap"><div class="loading">Loading...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recent Postings</div>
+      <nav class="feed-tab-nav">
+        <button class="feed-tab-btn active" data-ftab="All">All</button>
+        <button class="feed-tab-btn" data-ftab="Engineering">Engineering</button>
+        <button class="feed-tab-btn" data-ftab="Product">Product</button>
+        <button class="feed-tab-btn" data-ftab="Sales">Sales</button>
+        <button class="feed-tab-btn" data-ftab="Marketing">Marketing</button>
+        <button class="feed-tab-btn" data-ftab="Operations">Operations</button>
+        <button class="feed-tab-btn" data-ftab="G&A">G&amp;A</button>
+        <button class="feed-tab-btn" data-ftab="Leadership">Leadership</button>
+      </nav>
+      <div id="feed-wrap"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== FIND ROLES TAB ===== -->
+<div id="tab-match" class="tab-panel">
+
+  <div class="match-form-card">
+    <div class="form-section">
+      <label class="form-label" for="linkedin-input">Paste LinkedIn Profile</label>
+      <p class="form-hint">On their LinkedIn page: click anywhere on the page, Ctrl+A (or Cmd+A on Mac) to select all, then Ctrl+C to copy, then paste here. Nav junk is ignored automatically.</p>
+      <textarea class="form-input" id="linkedin-input"
+        placeholder="Paste the candidate's full LinkedIn profile text here..."></textarea>
+    </div>
+    <div class="form-section">
+      <label class="form-label" for="context-input">
+        Additional context <span class="form-optional">(optional)</span>
+      </label>
+      <textarea class="form-input" id="context-input"
+        placeholder="Anything else? Location flexibility, comp expectations, specific companies to prioritize or avoid..."></textarea>
+    </div>
+    <button class="match-btn" id="match-btn" onclick="runMatch()">Find Matches</button>
+  </div>
+
+  <div id="match-output"></div>
+
+</div>
+
+</div><!-- /page -->
+
+<script>
+// =============================================================================
+// STATE
+// =============================================================================
+let allJobs        = [];   // pre-processed with _function, _seniority, _isLeadership
+let activeFunction = "All";
+let activeSeniority= "All";
+let keywordValue   = "";
+let expandedCompany= null;
+let feedTabValue   = "All";
+let trendChart     = null;
+let debounceTimer  = null;
+let lastCandidate  = null;
+let lastMatches    = [];
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+function esc(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function fetchJson(url, opts) {
+  const res = await fetch(url, opts || {});
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+function relativeTime(iso) {
+  if (!iso) return "";
+  const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (d === 0) return "today";
+  if (d === 1) return "yesterday";
+  if (d < 7) return d + " days ago";
+  if (d < 14) return "1 week ago";
+  if (d < 30) return Math.floor(d / 7) + " weeks ago";
+  if (d < 60) return "1 month ago";
+  return Math.floor(d / 30) + " months ago";
+}
+
+// =============================================================================
+// INFERENCE (pre-computed on load)
+// =============================================================================
+
+function inferFunction(dept, title) {
+  const s = ((dept || "") + " " + (title || "")).toLowerCase();
+  if (/product\s*market/.test(s))                                                                              return "Marketing";
+  if (/\beng(ineer)?\b|software|infrastructure|\binfra\b|\bml\b|machine[\s-]?learn|\bdata\b|platform\b|devops|backend|frontend|full[\s-]?stack|\bsre\b|\bcloud\b|\bios\b|\bandroid\b|\bmobile\b|\bsecurity\b|developer\b/.test(s)) return "Engineering";
+  if (/\bproduct\b|\bpm\b|\bux\b|user[\s-]?exp|designer?\b/.test(s))                                          return "Product";
+  if (/\bsales\b|account[\s-]?(exec|manage|rep)|revenue\b|business[\s-]?dev|\bbd\b|\bsdr\b|\bbdr\b|\bae\b|customer[\s-]?success|\bcsm\b|partnerships/.test(s)) return "Sales";
+  if (/\bmarket(ing)?\b|\bgrowth\b|\bbrand\b|\bcontent\b|demand[\s-]?gen|communications?|\bseo\b|\bsem\b/.test(s)) return "Marketing";
+  if (/\bops\b|operations\b|supply[\s-]?chain|logistics\b/.test(s))                                           return "Operations";
+  if (/\bfinance\b|financial\b|accounting\b|\blegal\b|counsel|people[\s-]?ops|human[\s-]?res|\bhr\b|talent\b|recruit|admin\b|g\s*&\s*a/.test(s)) return "G&A";
+  return "Other";
+}
+
+function inferSeniority(title) {
+  const t = title.toLowerCase();
+  if (/\bvp\b|vice\s+president|\bhead\s+of\b|\bchief\b|\bcto\b|\bcpo\b|\bceo\b|\bcoo\b|\bcfo\b/.test(t)) return "VP+";
+  if (/\bdirector\b/.test(t)) return "Director";
+  if (/\bmanager\b|\blead\b/.test(t)) return "Manager";
+  return "IC";
+}
+
+function isLeadership(title) {
+  const t = title.toLowerCase();
+  return /\bvp\b|vice\s+president|\bdirector\b|\bhead\s+of\b|\bchief\b|\bcto\b|\bcpo\b|\bceo\b|\bcoo\b|\bcfo\b/.test(t);
+}
+
+// =============================================================================
+// SPARKLINES
+// =============================================================================
+
+function computeSparkline(jobs, weeksBack) {
+  const now = Date.now();
+  const counts = [];
+  for (let i = weeksBack - 1; i >= 0; i--) {
+    const start = now - (i + 1) * 7 * 86400000;
+    const end   = now - i * 7 * 86400000;
+    counts.push(jobs.filter(j => {
+      const t = new Date(j.first_seen).getTime();
+      return t >= start && t < end;
+    }).length);
+  }
+  return counts;
+}
+
+function renderSparkline(counts) {
+  const max = Math.max(...counts, 1);
+  return `<div class="sparkline">${counts.map(c => {
+    const h = c > 0 ? Math.max(Math.round((c / max) * 100), 12) : 0;
+    return `<div class="spark-bar" style="height:${h}%${c === 0 ? ";opacity:0.2" : ""}"></div>`;
+  }).join("")}</div>`;
+}
+
+// =============================================================================
+// FILTERING
+// =============================================================================
+
+function getFilteredJobs() {
+  return allJobs.filter(j => {
+    if (activeFunction !== "All" && j._function !== activeFunction) return false;
+    if (activeSeniority !== "All" && j._seniority !== activeSeniority) return false;
+    if (keywordValue) {
+      const kw = keywordValue.toLowerCase();
+      if (!j.title.toLowerCase().includes(kw) && !j.company.toLowerCase().includes(kw)) return false;
+    }
+    return true;
+  });
+}
+
+function getFeedJobs(filteredJobs) {
+  // Feed tabs apply on top of global filters
+  if (feedTabValue === "All") return filteredJobs;
+  if (feedTabValue === "Leadership") return filteredJobs.filter(j => j._isLeadership);
+  return filteredJobs.filter(j => j._function === feedTabValue);
+}
+
+// =============================================================================
+// WEEK HELPERS
+// =============================================================================
+
+function getWeekBoundaries(n) {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const day = now.getDay();
+  const thisSun = new Date(now);
+  thisSun.setDate(now.getDate() - day);
+  const weeks = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const start = new Date(thisSun);
+    start.setDate(thisSun.getDate() - i * 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    const label = start.toLocaleString("default", { month: "short" }) + " " + start.getDate();
+    weeks.push({ start: start.getTime(), end: end.getTime(), label });
+  }
+  return weeks;
+}
+
+// =============================================================================
+// TREND CHART
+// =============================================================================
+
+function updateTrendChart(filteredJobs) {
+  const weeks = getWeekBoundaries(8);
+  const data = weeks.map(({ start, end }) =>
+    filteredJobs.filter(j => {
+      const t = new Date(j.first_seen).getTime();
+      return t >= start && t < end;
+    }).length
+  );
+  if (!trendChart) {
+    const ctx = document.getElementById("trends-chart").getContext("2d");
+    trendChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: weeks.map(w => w.label),
+        datasets: [{ label: "New Jobs", data, borderColor: "#184b30", backgroundColor: "rgba(24,75,48,0.08)", tension: 0.3, fill: true, pointBackgroundColor: "#184b30", pointRadius: 4, borderWidth: 2 }],
+      },
+      options: {
+        animation: { duration: 200 },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: "#ddd8cf" }, ticks: { color: "#7a7773", font: { family: "Helvetica Neue, Helvetica, Arial, sans-serif", size: 11 } } },
+          y: { beginAtZero: true, grid: { color: "#ddd8cf" }, ticks: { color: "#7a7773", precision: 0, font: { family: "Helvetica Neue, Helvetica, Arial, sans-serif", size: 11 } } },
+        },
+      },
+    });
+  } else {
+    trendChart.data.labels = weeks.map(w => w.label);
+    trendChart.data.datasets[0].data = data;
+    trendChart.update();
+  }
+}
+
+// =============================================================================
+// COMPANY TABLE
+// =============================================================================
+
+function renderDrawerContent(company, filteredJobs) {
+  const jobs = filteredJobs
+    .filter(j => j.company === company)
+    .sort((a, b) => new Date(b.first_seen) - new Date(a.first_seen));
+  if (!jobs.length) return `<div class="drawer-empty">No matching roles.</div>`;
+  return jobs.map(j => {
+    const meta = [j.department, j.location].filter(Boolean).join(" · ");
+    return `
+      <div class="drawer-job">
+        <div class="drawer-job-info">
+          <div class="drawer-job-title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></div>
+          ${meta ? `<div class="drawer-job-meta">${esc(meta)}</div>` : ""}
+        </div>
+        <div class="drawer-job-posted">${relativeTime(j.first_seen)}</div>
+      </div>`;
+  }).join("");
+}
+
+function renderCompanyTable(filteredJobs) {
+  const wrap = document.getElementById("companies-wrap");
+  if (!allJobs.length) {
+    wrap.innerHTML = '<div class="loading">No data yet - run the scraper first.</div>';
+    return;
+  }
+
+  // Group filtered jobs by company
+  const byCompany = {};
+  for (const j of filteredJobs) {
+    if (!byCompany[j.company]) byCompany[j.company] = [];
+    byCompany[j.company].push(j);
+  }
+
+  const rows = Object.entries(byCompany)
+    .sort((a, b) => b[1].length - a[1].length);
+
+  if (!rows.length) {
+    wrap.innerHTML = '<div class="loading">No roles match the current filters.</div>';
+    return;
+  }
+
+  const isOpen = company => company === expandedCompany;
+
+  const html = `
+    <table>
+      <thead><tr><th>Company</th><th>Jobs</th><th>Trend</th><th>Last Posted</th></tr></thead>
+      <tbody id="companies-tbody">
+        ${rows.map(([company, jobs]) => {
+          const sparkData  = computeSparkline(jobs, 6);
+          const lastPosted = jobs.reduce((m, j) => j.first_seen > m ? j.first_seen : m, "");
+          const open       = isOpen(company);
+          return `
+            <tr class="company-row${open ? " is-open" : ""}" data-company="${esc(company)}">
+              <td><span style="font-weight:500">${esc(company)}</span><span class="expand-icon">&#9654;</span></td>
+              <td><span class="count-badge">${jobs.length}</span></td>
+              <td>${renderSparkline(sparkData)}</td>
+              <td><span class="date-muted">${relativeTime(lastPosted)}</span></td>
+            </tr>
+            ${open ? `
+            <tr class="company-drawer-row">
+              <td colspan="4"><div class="drawer-content">${renderDrawerContent(company, filteredJobs)}</div></td>
+            </tr>` : ""}`;
+        }).join("")}
+      </tbody>
+    </table>`;
+
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll(".company-row").forEach(row => {
+    row.addEventListener("click", () => {
+      const company = row.dataset.company;
+      expandedCompany = expandedCompany === company ? null : company;
+      renderCompanyTable(getFilteredJobs());
+    });
+  });
+}
+
+// =============================================================================
+// RECENT FEED
+// =============================================================================
+
+function renderFeed() {
+  const el = document.getElementById("feed-wrap");
+  const filtered = getFilteredJobs();
+  const feedJobs = getFeedJobs(filtered).slice(0, 30);
+
+  if (!allJobs.length) {
+    el.innerHTML = '<div class="loading">No data yet.</div>';
+    return;
+  }
+  if (!feedJobs.length) {
+    el.innerHTML = '<div class="loading">No roles match.</div>';
+    return;
+  }
+
+  el.innerHTML = feedJobs.map(j => {
+    const lead = j._isLeadership;
+    return `
+      <div class="feed-item${lead ? " is-leadership" : ""}">
+        <div class="feed-top">
+          ${lead ? '<span class="feed-leadership-dot"></span>' : ""}
+          <span class="feed-company">${esc(j.company)}</span>
+          <span class="date-muted" style="font-size:0.75rem">${relativeTime(j.first_seen)}</span>
+        </div>
+        <div class="feed-title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></div>
+        <div class="feed-meta">${esc(j.location || "")}</div>
+      </div>`;
+  }).join("");
+}
+
+// =============================================================================
+// OVERVIEW ORCHESTRATION
+// =============================================================================
+
+function updateOverview() {
+  const filtered = getFilteredJobs();
+  updateTrendChart(filtered);
+  renderCompanyTable(filtered);
+  renderFeed();
+}
+
+// =============================================================================
+// FIND ROLES — MATCH UI
+// =============================================================================
+
+function scoreColor(s) {
+  if (s >= 80) return "#5da089";
+  if (s >= 60) return "#c8953c";
+  return "#9b2c2c";
+}
+
+function renderCandidateSummary(c) {
+  if (!c || !c.current_role) return "";
+  const name    = c.name || "Candidate";
+  const expStr  = c.experience_years ? `${c.experience_years} yrs exp` : "";
+  const skills  = (c.skills || []).map(s => `<span class="skill-tag">${esc(s)}</span>`).join("");
+  return `
+    <div class="candidate-summary">
+      <div class="cand-header">
+        <div class="cand-name">${esc(name)}</div>
+        <div class="cand-role">${esc(c.current_role || "")}</div>
+      </div>
+      <div class="cand-tags">
+        ${c.function  ? `<span class="cand-tag tag-fn">${esc(c.function)}</span>` : ""}
+        ${c.seniority ? `<span class="cand-tag tag-sen">${esc(c.seniority)}</span>` : ""}
+        ${c.location  ? `<span class="cand-tag tag-loc">${esc(c.location)}</span>` : ""}
+        ${expStr      ? `<span class="cand-tag tag-exp">${esc(expStr)}</span>` : ""}
+      </div>
+      ${skills ? `<div class="skills-row">${skills}</div>` : ""}
+    </div>`;
+}
+
+function renderMatchCard(m, idx) {
+  const color   = scoreColor(m.match_score);
+  const fitCls  = { strong: "badge-fit-strong", stretch: "badge-fit-stretch", overqualified: "badge-fit-overqualified" }[m.seniority_fit] || "badge-fit-stretch";
+  const fitLabel= m.seniority_fit || "unknown";
+  const fnBadge = m.function_match ? "badge-fn-yes" : "badge-fn-no";
+  const fnLabel = m.function_match ? "Function match" : "Function mismatch";
+  const meta    = [m.company, m.department, m.location].filter(Boolean).join(" · ");
+  const posted  = m.days_ago === 0 ? "today" : m.days_ago === 1 ? "yesterday" : `${m.days_ago} days ago`;
+  return `
+    <div class="match-card">
+      <div class="match-card-top">
+        <div class="score-section">
+          <div class="score-num" style="color:${color}">${m.match_score}</div>
+          <div class="score-bar-wrap"><div class="score-bar" style="width:${m.match_score}%;background:${color}"></div></div>
+        </div>
+        <div class="match-badges">
+          <span class="badge ${fitCls}">${esc(fitLabel)}</span>
+          <span class="badge ${fnBadge}">${fnLabel}</span>
+        </div>
+      </div>
+      <div class="match-role"><a href="${esc(m.url)}" target="_blank" rel="noopener">${esc(m.title)}</a></div>
+      <div class="match-meta">${esc(meta)}</div>
+      <div class="match-reason">${esc(m.match_reason)}</div>
+      <div class="match-footer">
+        <span class="match-posted">Posted ${posted}</span>
+        <button class="copy-btn" onclick="copyBlurb(this, ${idx})">Copy intro blurb</button>
+      </div>
+    </div>`;
+}
+
+function copyBlurb(btn, idx) {
+  const m    = lastMatches[idx];
+  const name = (lastCandidate && lastCandidate.name) ? lastCandidate.name : "this candidate";
+  const role = (lastCandidate && lastCandidate.current_role) ? lastCandidate.current_role : "their current role";
+  const blurb = `Hey ${m.company} — wanted to flag ${name}, ${role}. ${m.match_reason}. Thought they could be interesting for ${m.title}. Happy to make an intro.`;
+  navigator.clipboard.writeText(blurb).then(() => {
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copy intro blurb"; btn.classList.remove("copied"); }, 2000);
+  }).catch(() => {
+    // Fallback for clipboard API
+    const ta = document.createElement("textarea");
+    ta.value = blurb;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "Copy intro blurb"; btn.classList.remove("copied"); }, 2000);
+  });
+}
+
+async function runMatch() {
+  const linkedin = document.getElementById("linkedin-input").value.trim();
+  const context  = document.getElementById("context-input").value.trim();
+  if (!linkedin) return;
+
+  const btn = document.getElementById("match-btn");
+  const out = document.getElementById("match-output");
+
+  btn.disabled = true;
+  out.innerHTML = `<div class="spinner-wrap"><div class="spinner"></div>Analyzing profile against all active roles&hellip;</div>`;
+
+  try {
+    const result = await fetchJson("/api/match", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ linkedin, context }),
+    });
+
+    lastCandidate = result.candidate || {};
+    lastMatches   = result.matches  || [];
+
+    const allWeak = lastMatches.every(m => m.match_score < 50);
+
+    const callout = allWeak
+      ? `<div class="no-matches-callout">No strong matches found — consider broadening location or function</div>`
+      : "";
+
+    const summary = renderCandidateSummary(lastCandidate);
+    const cards   = lastMatches.map((m, i) => renderMatchCard(m, i)).join("");
+
+    out.innerHTML = summary + callout + (cards ? `<div class="match-results">${cards}</div>` : "");
+  } catch (err) {
+    out.innerHTML = `<div class="no-matches-callout">Error: ${esc(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// =============================================================================
+// EVENT SETUP
+// =============================================================================
+
+function setupEvents() {
+  // Tab switching
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // Function / seniority pills
+  document.querySelectorAll(".pill[data-filter]").forEach(pill => {
+    pill.addEventListener("click", () => {
+      const f = pill.dataset.filter;
+      document.querySelectorAll(`.pill[data-filter="${f}"]`).forEach(p => p.classList.remove("active"));
+      pill.classList.add("active");
+      if (f === "function") activeFunction = pill.dataset.value;
+      else activeSeniority = pill.dataset.value;
+      expandedCompany = null;
+      updateOverview();
+    });
+  });
+
+  // Keyword search (debounced)
+  document.getElementById("keyword-search").addEventListener("input", e => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      keywordValue = e.target.value.trim();
+      expandedCompany = null;
+      updateOverview();
+    }, 180);
+  });
+
+  // Feed tabs
+  document.querySelectorAll(".feed-tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".feed-tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      feedTabValue = btn.dataset.ftab;
+      renderFeed();
+    });
+  });
+
+  // Cmd/Ctrl+Enter submits match form
+  document.getElementById("linkedin-input").addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runMatch();
+  });
+}
+
+// =============================================================================
+// BOOT
+// =============================================================================
+
+async function init() {
+  setupEvents();
+
+  const [stats, jobs] = await Promise.all([
+    fetchJson("/api/stats"),
+    fetchJson("/api/jobs?all=1"),
+  ]);
+
+  document.getElementById("stat-companies").textContent = stats.companies ?? 0;
+  document.getElementById("stat-active").textContent    = stats.activeJobs ?? 0;
+  document.getElementById("stat-new-week").textContent  = stats.newThisWeek ?? 0;
+
+  allJobs = (jobs || []).map(j => ({
+    ...j,
+    _function:    inferFunction(j.department, j.title),
+    _seniority:   inferSeniority(j.title),
+    _isLeadership:isLeadership(j.title),
+  }));
+
+  updateOverview();
+}
+
+init().catch(err => console.error("Dashboard init error:", err));
+</script>
+</body>
+</html>
