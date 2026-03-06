@@ -1,184 +1,145 @@
-# Job Scout 🔍
+# Fika Job Scout
 
-**Get a Slack notification every time a company posts a new job. Automatically.**
-
-You pick the companies. Job Scout watches their job boards and pings your Slack channel the moment something new goes live. No more manually refreshing career pages.
-
-```
-You pick companies  →  Job Scout watches their job boards  →  New role appears  →  Slack ping
-```
-
-> Built for VC platform teams to monitor portfolio hiring velocity, but works for anyone tracking jobs at specific companies.
-
-**Setup takes ~15 minutes. No coding experience needed.**
+Internal tool for tracking hiring activity across the Fika Ventures portfolio.
 
 ---
 
-## What you'll need
+## What it does
 
-- A Mac or Linux computer (Windows works too with some tweaks)
-- [Node.js](https://nodejs.org/en/download) installed (free, takes 2 min - download the "LTS" version)
-- A Slack workspace where you can create a channel for job alerts
+- **Scrapes job boards** for all tracked portfolio companies every time it runs
+- **Slack notifications** when a new role is posted
+- **Web dashboard** to see hiring trends, browse open roles, and filter by function/seniority
+- **Candidate matching** — paste a LinkedIn profile, get the top 10 role matches across the portfolio ranked by fit
 
 ---
 
-## Setup (15 min)
+## Running it
 
-### Step 1: Get the code
+### Dashboard (the main thing)
 
-Download this repo by clicking the green **Code** button above → **Download ZIP**, then unzip it somewhere on your computer (e.g. your Desktop).
-
-Or if you're comfortable with Terminal:
 ```bash
-git clone https://github.com/ewatfika/jobscout
-cd jobscout
+cd fika-jobscout
+PORT=3001 npm run dashboard
 ```
 
-### Step 2: Install dependencies
+Open [http://localhost:3001](http://localhost:3001). Keep this running while you're using it.
 
-Open Terminal, navigate to the folder, and run:
-```bash
-npm install
-```
-
-### Step 3: Create your Slack webhook
-
-A webhook is just a URL that lets Job Scout post messages to your Slack channel.
-
-1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** → **From scratch**
-2. Name it "Job Scout", pick your workspace
-3. Click **Incoming Webhooks** → toggle it **On**
-4. Click **Add New Webhook to Workspace** → pick the channel you want alerts in
-5. Copy the webhook URL (it looks like `https://hooks.slack.com/services/...`)
-
-### Step 4: Add your webhook
-
-Create a file called `.env` in the job-scout folder and add this line (swap in your actual URL):
-
-```
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
-```
-
-### Step 5: Add your companies
-
-Open `index.ts` in any text editor and edit the `COMPANIES` list:
-
-```typescript
-export const COMPANIES: CompanyConfig[] = [
-  { name: "Anthropic", ats: "greenhouse", slug: "anthropic" },
-  { name: "Stripe",    ats: "greenhouse", slug: "stripe" },
-  { name: "Netflix",   ats: "lever",      slug: "netflix" },
-  { name: "Ramp",      ats: "ashby",      slug: "ramp" },
-];
-```
-
-**Finding a company's slug:** look at their careers page URL and grab the last part:
-
-| Careers page URL | Platform | Slug |
-|---|---|---|
-| `boards.greenhouse.io/anthropic` | greenhouse | `anthropic` |
-| `jobs.lever.co/netflix` | lever | `netflix` |
-| `jobs.ashbyhq.com/ramp` | ashby | `ramp` |
-| `pathspot.breezy.hr` | breezy | `pathspot` |
-| `acme.bamboohr.com/careers` | bamboohr | `acme` |
-| `ats.rippling.com/acme/jobs` | rippling | `acme` |
-
-Not sure which platform a company uses? Just look at their careers page URL - the platform name is usually right there.
-
-### Step 6: Test it
+### Scrape for new jobs
 
 ```bash
 npm start
 ```
 
-You should see it check each company and ping your Slack channel for anything new. On first run it'll send notifications for all current openings, then only notify you on net-new postings going forward.
+Run this manually whenever you want to check for new postings, or set it on a cron (see below). The dashboard reflects whatever's in the database, so scrape first to get fresh data.
 
 ---
 
-## Run it automatically every morning
+## Environment variables
 
-You have two options depending on how hands-on you want to be.
-
-### Option 1: Deploy to Railway (recommended)
-
-[Railway](https://railway.app) is the easiest way to run Job Scout 24/7 without keeping your laptop on. It's free to start and takes about 5 minutes.
-
-1. Create a free account at [railway.app](https://railway.app)
-2. Click **New Project** -> **Deploy from GitHub repo** -> select this repo
-3. Add your environment variable: go to your project -> **Variables** -> add `SLACK_WEBHOOK_URL` with your webhook URL
-4. Add a cron schedule: go to **Settings** -> **Cron Schedule** -> enter `0 9 * * *` (runs every day at 9am UTC)
-
-That's it. Railway will run Job Scout on schedule automatically, no laptop required.
-
-Other platforms that work the same way: [Render](https://render.com), [Fly.io](https://fly.io) — all have free tiers.
-
-### Option 2: Cron on your own computer
-
-If you'd rather run it locally, open Terminal and run `crontab -e`, then add:
+Create a `.env` file (copy from `.env.example`):
 
 ```
-0 9 * * * cd /path/to/jobscout && npm start >> /tmp/jobscout.log 2>&1
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...   # Slack alerts on new postings
+ANTHROPIC_API_KEY=sk-ant-...                              # Required for Find Roles matching
+DATABASE_URL=postgresql://...                             # Optional — uses local SQLite if not set
 ```
 
-Replace `/path/to/jobscout` with wherever you saved the folder (e.g. `/Users/yourname/Desktop/jobscout`).
-
-Use [crontab.guru](https://crontab.guru) to build a custom schedule.
-
-> **Note:** Your computer needs to be on and awake at the scheduled time for this to fire. If your laptop is often closed, go with Railway instead.
-
 ---
 
-## Supported job board platforms
+## Adding or removing a company
 
-| Platform | Works? |
-|---|---|
-| Greenhouse | ✅ |
-| Lever | ✅ |
-| Ashby | ✅ |
-| Breezy HR | ✅ |
-| BambooHR | ✅ |
-| Rippling | ✅ |
-| Workday | 🔜 |
-| LinkedIn | 🔜 |
-
----
-
-## Optional: filter by keyword or location
-
-Only want to hear about engineering roles? Or only remote jobs? Edit the `FILTERS` section in `index.ts`:
+Edit the `COMPANIES` array in `index.ts`. Each entry needs three things:
 
 ```typescript
-export const FILTERS = {
-  keywords: ["engineer", "product"],      // only notify for these roles
-  exclude:  ["intern", "contractor"],     // never notify for these
-  locations: ["Remote", "New York"],      // only these locations
-};
+{ name: "Siro", ats: "ashby", slug: "siro" }
 ```
 
-Leave any list empty (`[]`) to skip that filter.
+**Finding the slug:** look at the company's careers page URL:
+
+| Careers page URL | ATS | Slug |
+|---|---|---|
+| `job-boards.greenhouse.io/acme` | `greenhouse` | `acme` |
+| `jobs.lever.co/acme` | `lever` | `acme` |
+| `jobs.ashbyhq.com/acme` | `ashby` | `acme` |
+| `acme.breezy.hr` | `breezy` | `acme` |
+| `acme.bamboohr.com/careers` | `bamboohr` | `acme` |
+| `ats.rippling.com/acme/jobs` | `rippling` | `acme` |
+
+After adding a company, run `npm start` to pull in their current openings.
 
 ---
 
-## What the Slack notification looks like
+## Portfolio companies currently tracked
 
-```
-🆕 New Job Posted
-
-Company: Anthropic
-Role: Senior Software Engineer
-Location: San Francisco, CA
-Department: Engineering
-Link: https://boards.greenhouse.io/anthropic/jobs/123456
-
-[ View Job ]  ← clickable button
-```
+| Company | ATS |
+|---|---|
+| AKKO | Greenhouse |
+| BuildOps | Greenhouse |
+| Chowbus | Greenhouse |
+| Moment Energy | Greenhouse |
+| Noyo | Greenhouse |
+| Papaya | Greenhouse |
+| Sunbound | Greenhouse |
+| Field AI | Lever |
+| Grid | Lever |
+| Ivo | Lever |
+| Ajax | Ashby |
+| Allocate | Ashby |
+| Apiphany | Ashby |
+| Artemis | Ashby |
+| Atticus | Ashby |
+| Beeble | Ashby |
+| Clarify | Ashby |
+| Coverbase | Ashby |
+| Dispatch | Ashby |
+| First Resonance | Ashby |
+| Inspectiv | Ashby |
+| Payabli | Ashby |
+| Sift | Ashby |
+| Siro | Ashby |
+| Accorded | Breezy HR |
+| PathSpot | Breezy HR |
+| Upwards | Breezy HR |
+| Elementary | BambooHR |
+| Bowery Valuation | Rippling |
+| SubBase | Rippling |
 
 ---
 
-## License
+## Find Roles (candidate matching)
 
-MIT
+On the **Find Roles** tab in the dashboard:
+
+1. Go to the candidate's LinkedIn profile
+2. Press `Cmd+A` to select all, `Cmd+C` to copy
+3. Paste into the text box
+4. Optionally add context (location flexibility, comp, companies to prioritize)
+5. Hit **Find Matches**
+
+Claude reads the profile, extracts the candidate's function/seniority/domain, and scores every active role in the portfolio for mutual fit. Scoring is intentionally critical — 80+ means a genuinely compelling match.
+
+The **Copy intro blurb** button on each match generates a one-liner you can paste straight into a message to the portco.
+
+Requires `ANTHROPIC_API_KEY` in `.env`.
 
 ---
 
-Built by [Emma @ Fika Ventures](https://www.linkedin.com/in/emma-w-42a469182/) 💼
+## Automating the scrape
+
+### Option A: cron on your laptop
+
+```
+0 9 * * 1-5 cd /Users/emmawirt/fika-jobscout && npm start >> /tmp/jobscout.log 2>&1
+```
+
+Runs weekday mornings at 9am. Add via `crontab -e`.
+
+### Option B: Railway (runs in the cloud, no laptop needed)
+
+1. Push this repo to GitHub (already done — it's at `ewatfika/fika-jobscout`)
+2. Create a new project at [railway.app](https://railway.app) → Deploy from GitHub → select `fika-jobscout`
+3. Add env vars under **Variables**: `SLACK_WEBHOOK_URL`, `ANTHROPIC_API_KEY`
+4. Add a Postgres database (Railway provisions it and sets `DATABASE_URL` automatically)
+5. Set a cron under **Settings** → `0 9 * * 1-5`
+
+With Railway + Postgres the data persists across runs in the cloud and the dashboard is accessible from anywhere.
