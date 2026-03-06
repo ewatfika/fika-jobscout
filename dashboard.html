@@ -287,6 +287,15 @@
     .date-muted { color: var(--muted); font-size: 0.8rem; }
 
     /* Sparkline */
+    .co-logo { border-radius: 4px; object-fit: contain; vertical-align: middle; flex-shrink: 0; }
+    .co-initial {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--surface2); color: var(--muted);
+      border-radius: 4px; font-weight: 600; flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .co-name-cell { display: flex; align-items: center; gap: 8px; }
+
     .sparkline {
       display: flex;
       align-items: flex-end;
@@ -789,6 +798,49 @@
 // =============================================================================
 // STATE
 // =============================================================================
+
+const COMPANY_DOMAINS = {
+  "AKKO": "getakko.com",
+  "BuildOps": "buildops.com",
+  "Chowbus": "chowbus.com",
+  "Moment Energy": "momentenergy.com",
+  "Noyo": "noyo.com",
+  "Papaya": "papayaglobal.com",
+  "Sunbound": "sunboundhomes.com",
+  "Field AI": "fieldai.com",
+  "Grid": "getgrid.app",
+  "Ivo": "ivo.ai",
+  "Ajax": "joinajax.com",
+  "Allocate": "rldatix.com",
+  "Apiphany": "apiphany.ai",
+  "Artemis": "artemisanalytics.com",
+  "Atticus": "atticus.com",
+  "Beeble": "beeble.ai",
+  "Clarify": "clarifyhealth.com",
+  "Coverbase": "coverbase.com",
+  "Dispatch": "dispatch.me",
+  "First Resonance": "firstresonance.io",
+  "Inspectiv": "inspectiv.com",
+  "Payabli": "payabli.com",
+  "Sift": "sift.com",
+  "Siro": "siro.ai",
+  "Accorded": "accorded.com",
+  "PathSpot": "pathspot.com",
+  "Upwards": "upwards.com",
+  "Elementary": "elementary-data.com",
+  "Bowery Valuation": "boweryvaluation.com",
+  "SubBase": "subsbase.com",
+};
+
+function companyLogo(name, size = 20) {
+  const domain = COMPANY_DOMAINS[name];
+  if (!domain) return `<span class="co-initial" style="width:${size}px;height:${size}px;font-size:${Math.round(size*0.45)}px">${esc(name[0])}</span>`;
+  return `<img src="https://logo.clearbit.com/${domain}" width="${size}" height="${size}" class="co-logo"
+    onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"
+    style="border-radius:4px;object-fit:contain;vertical-align:middle;flex-shrink:0">
+    <span class="co-initial" style="display:none;width:${size}px;height:${size}px;font-size:${Math.round(size*0.45)}px">${esc(name[0])}</span>`;
+}
+
 let allJobs        = [];   // pre-processed with _function, _seniority, _isLeadership
 let activeFunction = "All";
 let activeSeniority= "All";
@@ -995,7 +1047,7 @@ function openCompanyPanel(company) {
   document.getElementById("company-panel").innerHTML = `
     <div class="panel-header">
       <div>
-        <div class="panel-company-name">${esc(company)}</div>
+        <div style="display:flex;align-items:center;gap:10px">${companyLogo(company, 32)}<div class="panel-company-name">${esc(company)}</div></div>
         <div class="panel-subtitle">${jobs.length} open role${jobs.length !== 1 ? "s" : ""}</div>
       </div>
       <button class="panel-close" onclick="closeCompanyPanel()">&#x2715;</button>
@@ -1083,7 +1135,7 @@ function renderCompanyTable(filteredJobs) {
           const lastPosted = jobs.reduce((m, j) => j.first_seen > m ? j.first_seen : m, "");
           return `
             <tr class="company-row" data-company="${esc(company)}" style="cursor:pointer">
-              <td><span style="font-weight:500">${esc(company)}</span></td>
+              <td><span class="co-name-cell">${companyLogo(company, 20)}<span style="font-weight:500">${esc(company)}</span></span></td>
               <td><span class="count-badge">${jobs.length}</span></td>
               <td>${renderSparkline(sparkData)}</td>
               <td><span class="date-muted">${relativeTime(lastPosted)}</span></td>
@@ -1123,7 +1175,7 @@ function renderFeed() {
       <div class="feed-item${lead ? " is-leadership" : ""}">
         <div class="feed-top">
           ${lead ? '<span class="feed-leadership-dot"></span>' : ""}
-          <span class="feed-company">${esc(j.company)}</span>
+          ${companyLogo(j.company, 16)}<span class="feed-company">${esc(j.company)}</span>
           <span class="date-muted" style="font-size:0.75rem">${relativeTime(j.first_seen)}</span>
         </div>
         <div class="feed-title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></div>
