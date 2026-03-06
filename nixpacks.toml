@@ -1,2 +1,2 @@
-[phases.setup]
-nixPkgs = ["sqlite"]
+[phases.install]
+cmds = ["npm ci --omit=optional"]
