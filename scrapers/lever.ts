@@ -18,6 +18,18 @@ interface LeverJob {
   };
   hostedUrl: string;
   createdAt: number;
+  salaryRange?: {
+    min: number;
+    max: number;
+    currency: string;
+    interval: string;
+  };
+}
+
+function formatSalary(range: NonNullable<LeverJob["salaryRange"]>): string {
+  const fmt = (n: number) => n >= 1000 ? `$${Math.round(n / 1000)}K` : `$${n}`;
+  const interval = range.interval.includes("year") ? "/yr" : range.interval.includes("hour") ? "/hr" : "";
+  return `${fmt(range.min)}–${fmt(range.max)}${interval}`;
 }
 
 export async function fetchLeverJobs(company: CompanyConfig): Promise<Job[]> {
@@ -49,6 +61,7 @@ export async function fetchLeverJobs(company: CompanyConfig): Promise<Job[]> {
       url: job.hostedUrl,
       department: job.categories?.team || job.categories?.department,
       postedAt: new Date(job.createdAt).toISOString(),
+      salary: job.salaryRange ? formatSalary(job.salaryRange) : undefined,
     }));
   } catch (error) {
     console.error(`Error fetching Lever jobs for ${company.name}:`, error);

@@ -91,17 +91,34 @@ export async function saveJob(job: Job): Promise<void> {
   if (isPg()) {
     const { pool } = getDb() as { pool: import("pg").Pool };
     await pool.query(
-      `INSERT INTO jobs (id, company, title, location, url, department, first_seen, last_seen)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (id) DO UPDATE SET last_seen = $8, is_active = 1`,
-      [job.id, job.company, job.title, job.location || "", job.url, job.department || "", now, now]
+      `INSERT INTO jobs (id, company, title, location, url, department, first_seen, last_seen, salary)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (id) DO UPDATE SET last_seen = $8, is_active = 1, salary = COALESCE($9, jobs.salary)`,
+      [job.id, job.company, job.title, job.location || "", job.url, job.department || "", now, now, job.salary || null]
     );
   } else {
     const { db } = getDb() as { db: import("better-sqlite3").Database };
     db.prepare(
-      `INSERT INTO jobs (id, company, title, location, url, department, first_seen, last_seen)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET last_seen = ?, is_active = 1`
-    ).run(job.id, job.company, job.title, job.location || "", job.url, job.department || "", now, now, now);
+      `INSERT INTO jobs (id, company, title, location, url, department, first_seen, last_seen, salary)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET last_seen = ?, is_active = 1, salary = COALESCE(?, salary)`
+    ).run(job.id, job.company, job.title, job.location || "", job.url, job.department || "", now, now, job.salary || null, now, job.salary || null);
+  }
+}
+
+export async function deactivateStaleJobs(company: string, activeIds: string[]): Promise<void> {
+  if (activeIds.length === 0) return;
+  if (isPg()) {
+    const { pool } = getDb() as { pool: import("pg").Pool };
+    await pool.query(
+      `UPDATE jobs SET is_active = 0 WHERE company = $1 AND is_active = 1 AND NOT (id = ANY($2))`,
+      [company, activeIds]
+    );
+  } else {
+    const { db } = getDb() as { db: import("better-sqlite3").Database };
+    const placeholders = activeIds.map(() => "?").join(",");
+    db.prepare(
+      `UPDATE jobs SET is_active = 0 WHERE company = ? AND is_active = 1 AND id NOT IN (${placeholders})`
+    ).run(company, ...activeIds);
   }
 }

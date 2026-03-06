@@ -11,15 +11,19 @@ export async function migrate(): Promise<void> {
       department TEXT,
       first_seen TEXT NOT NULL,
       last_seen TEXT NOT NULL,
-      is_active INTEGER DEFAULT 1
+      is_active INTEGER DEFAULT 1,
+      salary TEXT
     )
   `;
 
   if (isPg()) {
     const { pool } = getDb() as { pool: import("pg").Pool };
     await pool.query(schema);
+    // Add salary column to existing tables
+    await pool.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS salary TEXT`);
   } else {
     const { db } = getDb() as { db: import("better-sqlite3").Database };
     db.exec(schema);
+    try { db.exec(`ALTER TABLE jobs ADD COLUMN salary TEXT`); } catch { /* already exists */ }
   }
 }

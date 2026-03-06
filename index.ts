@@ -6,7 +6,7 @@
  */
 
 import "dotenv/config";
-import { initDb, isJobKnown, saveJob } from "./db";
+import { initDb, isJobKnown, saveJob, deactivateStaleJobs } from "./db";
 import { fetchGreenhouseJobs } from "./scrapers/greenhouse";
 import { fetchLeverJobs } from "./scrapers/lever";
 import { fetchAshbyJobs } from "./scrapers/ashby";
@@ -87,6 +87,7 @@ export interface Job {
   url: string;
   department?: string;
   postedAt?: string;
+  salary?: string;
 }
 
 // ============================================================
@@ -227,6 +228,7 @@ async function run(): Promise<void> {
   for (const company of COMPANIES) {
     const jobs = await scrapeCompany(company);
     const newCount = await processJobs(jobs);
+    await deactivateStaleJobs(company.name, jobs.map(j => j.id));
     totalNew += newCount;
 
     // Delay between companies

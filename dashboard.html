@@ -334,6 +334,16 @@
     .drawer-job-title a:hover { color: var(--accent2); text-decoration: underline; }
     .drawer-job-meta { font-size: 0.76rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .drawer-job-posted { font-size: 0.76rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .salary-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      background: color-mix(in srgb, var(--accent2) 15%, transparent);
+      color: var(--accent2);
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
 
     /* ---- Recent feed ---- */
     .feed-tab-nav {
@@ -930,13 +940,18 @@ function renderDrawerContent(company, filteredJobs) {
   if (!jobs.length) return `<div class="drawer-empty">No matching roles.</div>`;
   return jobs.map(j => {
     const meta = [j.department, j.location].filter(Boolean).join(" · ");
+    const daysOpen = Math.floor((Date.now() - new Date(j.first_seen)) / (1000*60*60*24));
+    const daysLabel = daysOpen === 0 ? "today" : daysOpen === 1 ? "1d open" : `${daysOpen}d open`;
     return `
       <div class="drawer-job">
         <div class="drawer-job-info">
           <div class="drawer-job-title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></div>
-          ${meta ? `<div class="drawer-job-meta">${esc(meta)}</div>` : ""}
+          <div class="drawer-job-meta">
+            ${meta ? esc(meta) : ""}
+            ${j.salary ? ` · <span class="salary-badge">${esc(j.salary)}</span>` : ""}
+          </div>
         </div>
-        <div class="drawer-job-posted">${relativeTime(j.first_seen)}</div>
+        <div class="drawer-job-posted" title="Posted ${relativeTime(j.first_seen)}">${daysLabel}</div>
       </div>`;
   }).join("");
 }
@@ -1027,7 +1042,10 @@ function renderFeed() {
           <span class="date-muted" style="font-size:0.75rem">${relativeTime(j.first_seen)}</span>
         </div>
         <div class="feed-title"><a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title)}</a></div>
-        <div class="feed-meta">${esc(j.location || "")}</div>
+        <div class="feed-meta">
+          ${esc(j.location || "")}
+          ${j.salary ? ` · <span class="salary-badge">${esc(j.salary)}</span>` : ""}
+        </div>
       </div>`;
   }).join("");
 }
