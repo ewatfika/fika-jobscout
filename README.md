@@ -2,74 +2,43 @@
 
 Internal tool for tracking hiring activity across the Fika Ventures portfolio.
 
+**Live dashboard:** `fika-jobscout-production.up.railway.app`
+
+---
+
+## Why this exists
+
+When we meet someone interesting, it's hard to keep track of what all our portcos are actively hiring for — especially the newer investments where we're still getting up to speed. This tool scrapes job boards across the portfolio every weekday morning so you always have a current picture of who's hiring and for what.
+
+The main use case is the **Find Roles** tab: paste a LinkedIn profile and it ranks every open role across the portfolio by fit. Instead of manually checking 30 job boards, you get a ranked list in a few seconds.
+
 ---
 
 ## What it does
 
-- **Scrapes job boards** for all tracked portfolio companies every time it runs
+- **Scrapes job boards** across 30 portfolio companies every weekday at 9am UTC
 - **Slack notifications** when a new role is posted
 - **Web dashboard** to see hiring trends, browse open roles, and filter by function/seniority
-- **Candidate matching** — paste a LinkedIn profile, get the top 10 role matches across the portfolio ranked by fit
+- **Candidate matching** — paste a LinkedIn profile, get the top 10 role matches ranked by fit with a one-click intro blurb
 
 ---
 
-## Running it
+## Using Find Roles
 
-### Dashboard (the main thing)
+1. Go to the candidate's LinkedIn profile
+2. Press `Cmd+A` to select all, `Cmd+C` to copy
+3. Open the dashboard → **Find Roles** tab
+4. Paste the profile into the text box
+5. Optionally add context (location, comp range, companies to prioritize)
+6. Hit **Find Matches**
 
-```bash
-cd fika-jobscout
-PORT=3001 npm run dashboard
-```
+Claude reads the profile, extracts function/seniority/domain, and scores every active role in the portfolio for mutual fit. Scoring is intentionally critical — 80+ means a genuinely compelling match.
 
-Open [http://localhost:3001](http://localhost:3001). Keep this running while you're using it.
-
-### Scrape for new jobs
-
-```bash
-npm start
-```
-
-Run this manually whenever you want to check for new postings, or set it on a cron (see below). The dashboard reflects whatever's in the database, so scrape first to get fresh data.
+The **Copy intro blurb** button on each match generates a one-liner you can paste straight into a message to the portco.
 
 ---
 
-## Environment variables
-
-Create a `.env` file (copy from `.env.example`):
-
-```
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...   # Slack alerts on new postings
-ANTHROPIC_API_KEY=sk-ant-...                              # Required for Find Roles matching
-DATABASE_URL=postgresql://...                             # Optional — uses local SQLite if not set
-```
-
----
-
-## Adding or removing a company
-
-Edit the `COMPANIES` array in `index.ts`. Each entry needs three things:
-
-```typescript
-{ name: "Siro", ats: "ashby", slug: "siro" }
-```
-
-**Finding the slug:** look at the company's careers page URL:
-
-| Careers page URL | ATS | Slug |
-|---|---|---|
-| `job-boards.greenhouse.io/acme` | `greenhouse` | `acme` |
-| `jobs.lever.co/acme` | `lever` | `acme` |
-| `jobs.ashbyhq.com/acme` | `ashby` | `acme` |
-| `acme.breezy.hr` | `breezy` | `acme` |
-| `acme.bamboohr.com/careers` | `bamboohr` | `acme` |
-| `ats.rippling.com/acme/jobs` | `rippling` | `acme` |
-
-After adding a company, run `npm start` to pull in their current openings.
-
----
-
-## Portfolio companies currently tracked
+## Portfolio companies tracked
 
 | Company | ATS |
 |---|---|
@@ -104,42 +73,58 @@ After adding a company, run `npm start` to pull in their current openings.
 | Bowery Valuation | Rippling |
 | SubBase | Rippling |
 
----
-
-## Find Roles (candidate matching)
-
-On the **Find Roles** tab in the dashboard:
-
-1. Go to the candidate's LinkedIn profile
-2. Press `Cmd+A` to select all, `Cmd+C` to copy
-3. Paste into the text box
-4. Optionally add context (location flexibility, comp, companies to prioritize)
-5. Hit **Find Matches**
-
-Claude reads the profile, extracts the candidate's function/seniority/domain, and scores every active role in the portfolio for mutual fit. Scoring is intentionally critical — 80+ means a genuinely compelling match.
-
-The **Copy intro blurb** button on each match generates a one-liner you can paste straight into a message to the portco.
-
-Requires `ANTHROPIC_API_KEY` in `.env`.
+Only works for portcos using one of these 6 ATS platforms (Greenhouse, Lever, Ashby, Breezy, BambooHR, Rippling). To add a company, see below.
 
 ---
 
-## Automating the scrape
+## Adding or removing a company
 
-### Option A: cron on your laptop
+Edit the `COMPANIES` array in `index.ts`:
 
+```typescript
+{ name: "Siro", ats: "ashby", slug: "siro" }
 ```
-0 9 * * 1-5 cd /Users/emmawirt/fika-jobscout && npm start >> /tmp/jobscout.log 2>&1
+
+**Finding the slug** — look at the company's careers page URL:
+
+| Careers page URL | ATS | Slug |
+|---|---|---|
+| `job-boards.greenhouse.io/acme` | `greenhouse` | `acme` |
+| `jobs.lever.co/acme` | `lever` | `acme` |
+| `jobs.ashbyhq.com/acme` | `ashby` | `acme` |
+| `acme.breezy.hr` | `breezy` | `acme` |
+| `acme.bamboohr.com/careers` | `bamboohr` | `acme` |
+| `ats.rippling.com/acme/jobs` | `rippling` | `acme` |
+
+After adding a company, run the scraper manually once to pull in their current openings:
+
+```bash
+DATABASE_URL=postgresql://postgres:...@mainline.proxy.rlwy.net:21558/railway npm start
 ```
 
-Runs weekday mornings at 9am. Add via `crontab -e`.
+---
 
-### Option B: Railway (runs in the cloud, no laptop needed)
+## Infrastructure
 
-1. Push this repo to GitHub (already done — it's at `ewatfika/fika-jobscout`)
-2. Create a new project at [railway.app](https://railway.app) → Deploy from GitHub → select `fika-jobscout`
-3. Add env vars under **Variables**: `SLACK_WEBHOOK_URL`, `ANTHROPIC_API_KEY`
-4. Add a Postgres database (Railway provisions it and sets `DATABASE_URL` automatically)
-5. Set a cron under **Settings** → `0 9 * * 1-5`
+Everything runs on Railway:
 
-With Railway + Postgres the data persists across runs in the cloud and the dashboard is accessible from anywhere.
+- **fika-jobscout** — the web dashboard, always on at `fika-jobscout-production.up.railway.app`
+- **insightful-peace** — cron service, runs `node dist/index.js` at `0 9 * * 1-5` (weekday 9am UTC)
+- **Postgres** — persistent database shared between both services
+
+### Environment variables (set in Railway)
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Auto-set by Railway Postgres |
+| `SLACK_WEBHOOK_URL` | Slack alerts on new postings |
+| `ANTHROPIC_API_KEY` | Required for Find Roles matching |
+
+### Running locally
+
+```bash
+cd fika-jobscout
+PORT=3001 npm run dashboard
+```
+
+Open [http://localhost:3001](http://localhost:3001). Uses local SQLite by default (no `DATABASE_URL` needed).
