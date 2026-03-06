@@ -203,14 +203,14 @@ async function processJobs(jobs: Job[]): Promise<number> {
   let newCount = 0;
   for (const job of jobs) {
     if (!matchesFilters(job)) continue;
-    if (await isJobKnown(job.id)) continue;
+    const isNew = !(await isJobKnown(job.id));
+    await saveJob(job); // always upsert to keep salary/last_seen current
 
-    await saveJob(job);
-    await sendSlackNotification(job);
-    newCount++;
-
-    // Small delay to avoid rate limits
-    await new Promise((r) => setTimeout(r, 500));
+    if (isNew) {
+      await sendSlackNotification(job);
+      newCount++;
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
   return newCount;
 }
