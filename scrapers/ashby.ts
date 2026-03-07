@@ -19,12 +19,8 @@ interface AshbyPostingJob {
   isListed: boolean;
   jobUrl: string;
   descriptionPlain?: string;
-}
-
-function extractSalary(text?: string): string | undefined {
-  if (!text) return undefined;
-  const m = text.match(/\$\s*[\d,]+\s*[kK]?\s*[-–—]\s*\$\s*[\d,]+\s*[kK]?/);
-  return m ? m[0].replace(/\s+/g, "") : undefined;
+  compensationTierSummary?: string;
+  scrapeableCompensationSalarySummary?: string;
 }
 
 interface AshbyPostingResponse {
@@ -32,7 +28,7 @@ interface AshbyPostingResponse {
 }
 
 export async function fetchAshbyJobs(company: CompanyConfig): Promise<Job[]> {
-  const url = `https://api.ashbyhq.com/posting-api/job-board/${company.slug}`;
+  const url = `https://api.ashbyhq.com/posting-api/job-board/${company.slug}?includeCompensation=true`;
 
   const response = await fetch(url, {
     headers: {
@@ -57,6 +53,6 @@ export async function fetchAshbyJobs(company: CompanyConfig): Promise<Job[]> {
       url: job.jobUrl,
       department: job.department || job.team,
       postedAt: job.publishedAt,
-      salary: extractSalary(job.descriptionPlain),
+      salary: job.scrapeableCompensationSalarySummary || job.compensationTierSummary || undefined,
     }));
 }
