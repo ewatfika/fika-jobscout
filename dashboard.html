@@ -1094,7 +1094,7 @@ function getWeekBoundaries(n) {
 // =============================================================================
 
 // Jobs before this date were bulk-imported, not organically scraped
-const SCRAPER_START = new Date("2026-03-08").getTime();
+const SCRAPER_START = new Date(2026, 2, 9).getTime(); // March 9 local — zeroes out Feb 22 + Mar 1 bulk upload weeks
 
 function updateTrendChart(filteredJobs) {
   const weeks = getWeekBoundaries(8);
