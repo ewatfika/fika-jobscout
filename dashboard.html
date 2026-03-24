@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 27px; }
 
     :root {
       --bg: #f7f5f0;
@@ -66,7 +67,7 @@
     }
 
     /* ---- Layout wrapper ---- */
-    .page { max-width: 1200px; margin: 0 auto; padding: 32px 28px; }
+    .page { max-width: 1600px; margin: 0 auto; padding: 32px 48px; }
 
     /* ---- Header ---- */
     header {
@@ -164,12 +165,12 @@
       top: 0;
       z-index: 20;
       background: var(--bg);
-      padding: 12px 0;
+      padding: 14px 0;
       border-bottom: 1px solid var(--border);
       margin-bottom: 24px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      flex-wrap: nowrap;
+      gap: 10px;
       align-items: center;
     }
     .pill-group {
@@ -210,12 +211,73 @@
       font-size: 0.83rem;
       padding: 5px 12px;
       outline: none;
-      width: 210px;
+      width: 240px;
+      margin-left: auto;
       transition: border-color 0.15s;
       font-family: inherit;
+      flex-shrink: 0;
     }
     .keyword-input:focus { border-color: var(--accent2); }
     .keyword-input::placeholder { color: var(--muted); }
+
+    /* ---- Location dropdown ---- */
+    .loc-dropdown { position: relative; }
+    .loc-trigger {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 500;
+      font-family: inherit;
+      padding: 3px 11px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .loc-trigger:hover { border-color: var(--accent); color: var(--accent); }
+    .loc-trigger.has-selection { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+    .loc-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 100;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+      min-width: 220px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 6px 0;
+    }
+    .loc-panel.open { display: block; }
+    .loc-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: var(--text);
+      user-select: none;
+    }
+    .loc-option:hover { background: var(--surface2); }
+    .loc-option input[type="checkbox"] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+    .loc-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+    .loc-search {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.78rem;
+      color: var(--text);
+      padding: 8px 14px;
+      outline: none;
+    }
+    .loc-search::placeholder { color: var(--muted); }
 
     /* ---- Generic card ---- */
     .card {
@@ -737,6 +799,17 @@
       <button class="pill" data-filter="seniority" data-value="Director">Director</button>
       <button class="pill" data-filter="seniority" data-value="VP+">VP+</button>
     </div>
+    <span class="filter-sep">|</span>
+    <div class="loc-dropdown" id="loc-dropdown">
+      <button class="loc-trigger" id="loc-trigger">Location ▾</button>
+      <div class="loc-panel" id="loc-panel">
+        <input class="loc-search" id="loc-search" type="text" placeholder="Search locations...">
+        <label class="loc-option" id="loc-all-option">
+          <input type="checkbox" id="loc-all-check" checked> All Locations
+        </label>
+        <hr class="loc-divider">
+      </div>
+    </div>
     <input class="keyword-input" id="keyword-search" type="text" placeholder="Search titles &amp; companies..." />
   </div>
 
@@ -851,6 +924,7 @@ function companyLogo(name, size = 20) {
 let allJobs        = [];   // pre-processed with _function, _seniority, _isLeadership
 let activeFunction = "All";
 let activeSeniority= "All";
+let activeLocations = new Set();
 let keywordValue   = "";
 
 let feedTabValue   = "All";
@@ -951,10 +1025,33 @@ function renderSparkline(counts) {
 // FILTERING
 // =============================================================================
 
+function normalizeCity(loc) {
+  if (!loc) return null;
+  if (loc.toLowerCase().includes("remote")) return "Remote";
+  return loc.split(",")[0].trim();
+}
+
+function updateLocTrigger() {
+  const btn = document.getElementById("loc-trigger");
+  if (activeLocations.size === 0) {
+    btn.textContent = "Location ▾";
+    btn.classList.remove("has-selection");
+  } else {
+    const names = [...activeLocations];
+    const label = names.length <= 2 ? names.join(", ") : `${names[0]} +${names.length - 1}`;
+    btn.textContent = `${label} ▾`;
+    btn.classList.add("has-selection");
+  }
+}
+
 function getFilteredJobs() {
   return allJobs.filter(j => {
     if (activeFunction !== "All" && j._function !== activeFunction) return false;
     if (activeSeniority !== "All" && j._seniority !== activeSeniority) return false;
+    if (activeLocations.size > 0) {
+      const city = normalizeCity(j.location);
+      if (!activeLocations.has(city)) return false;
+    }
     if (keywordValue) {
       const kw = keywordValue.toLowerCase();
       if (!j.title.toLowerCase().includes(kw) && !j.company.toLowerCase().includes(kw)) return false;
@@ -996,14 +1093,18 @@ function getWeekBoundaries(n) {
 // TREND CHART
 // =============================================================================
 
+// Jobs before this date were bulk-imported, not organically scraped
+const SCRAPER_START = new Date("2026-03-08").getTime();
+
 function updateTrendChart(filteredJobs) {
   const weeks = getWeekBoundaries(8);
-  const data = weeks.map(({ start, end }) =>
-    filteredJobs.filter(j => {
+  const data = weeks.map(({ start, end }) => {
+    if (end <= SCRAPER_START) return 0;
+    return filteredJobs.filter(j => {
       const t = new Date(j.first_seen).getTime();
       return t >= start && t < end;
-    }).length
-  );
+    }).length;
+  });
   if (!trendChart) {
     const ctx = document.getElementById("trends-chart").getContext("2d");
     trendChart = new Chart(ctx, {
@@ -1016,8 +1117,8 @@ function updateTrendChart(filteredJobs) {
         animation: { duration: 200 },
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: "#ddd8cf" }, ticks: { color: "#7a7773", font: { family: "Helvetica Neue, Helvetica, Arial, sans-serif", size: 11 } } },
-          y: { beginAtZero: true, grid: { color: "#ddd8cf" }, ticks: { color: "#7a7773", precision: 0, font: { family: "Helvetica Neue, Helvetica, Arial, sans-serif", size: 11 } } },
+          x: { grid: { color: "#ddd8cf" }, ticks: { color: "#7a7773", font: { family: "Helvetica Neue, Helvetica, Arial, sans-serif", size: 14 } } },
+          y: { beginAtZero: true, grid: { color: "#ddd8cf" }, ticks: { color: "#7a7773", precision: 0, font: { family: "Helvetica Neue, Helvetica, Arial, sans-serif", size: 14 } } },
         },
       },
     });
@@ -1357,6 +1458,38 @@ function setupEvents() {
     });
   });
 
+  // Location dropdown toggle
+  document.getElementById("loc-trigger").addEventListener("click", e => {
+    e.stopPropagation();
+    document.getElementById("loc-panel").classList.toggle("open");
+  });
+  document.addEventListener("click", e => {
+    if (!document.getElementById("loc-dropdown").contains(e.target)) {
+      document.getElementById("loc-panel").classList.remove("open");
+      const s = document.getElementById("loc-search");
+      s.value = "";
+      document.querySelectorAll(".loc-city-check").forEach(cb => cb.closest(".loc-option").style.display = "");
+    }
+  });
+  // Location search filter
+  document.getElementById("loc-search").addEventListener("input", e => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll(".loc-city-check").forEach(cb => {
+      cb.closest(".loc-option").style.display = cb.value.toLowerCase().includes(q) ? "" : "none";
+    });
+  });
+  document.getElementById("loc-search").addEventListener("click", e => e.stopPropagation());
+
+  // "All Locations" checkbox
+  document.getElementById("loc-all-check").addEventListener("change", () => {
+    activeLocations.clear();
+    document.querySelectorAll(".loc-city-check").forEach(cb => cb.checked = false);
+    document.getElementById("loc-all-check").checked = true;
+    updateLocTrigger();
+    closeCompanyPanel();
+    updateOverview();
+  });
+
   // Keyword search (debounced)
   document.getElementById("keyword-search").addEventListener("input", e => {
     clearTimeout(debounceTimer);
@@ -1405,6 +1538,39 @@ async function init() {
     _seniority:   inferSeniority(j.title),
     _isLeadership:isLeadership(j.title),
   }));
+
+  // Populate location dropdown from actual job data
+  const locPanel = document.getElementById("loc-panel");
+  const cities = new Set();
+  allJobs.forEach(j => {
+    const city = normalizeCity(j.location);
+    if (city) cities.add(city);
+  });
+  const sorted = [...cities].filter(c => c !== "Remote").sort();
+  if (cities.has("Remote")) sorted.unshift("Remote");
+  sorted.forEach(city => {
+    const label = document.createElement("label");
+    label.className = "loc-option";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.className = "loc-city-check";
+    cb.value = city;
+    cb.addEventListener("change", () => {
+      if (cb.checked) {
+        activeLocations.add(city);
+        document.getElementById("loc-all-check").checked = false;
+      } else {
+        activeLocations.delete(city);
+        if (activeLocations.size === 0) document.getElementById("loc-all-check").checked = true;
+      }
+      updateLocTrigger();
+      closeCompanyPanel();
+      updateOverview();
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(city));
+    locPanel.appendChild(label);
+  });
 
   updateOverview();
 }
