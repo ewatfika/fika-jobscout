@@ -2,7 +2,7 @@
 
 Internal tool for tracking hiring activity across the Fika Ventures portfolio.
 
-**Live dashboard:** `fika-jobscout-production.up.railway.app`
+**Live dashboard:** `fika-jobscout-production.up.railway.app` 
 
 ---
 
